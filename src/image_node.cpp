@@ -62,7 +62,7 @@ void image_node::find_white(std::vector<cv::Vec4i> &lines, cv::Mat &image, cv::V
 //根据蓝色音符和判定线的距离发布点击
 void image_node::click_blue(int y, std::vector<cv::Point> &object_points) {
     for (auto &blue:object_points) {
-        if (std::abs(y-blue.y)<=5) {
+        if (std::abs(y-blue.y)<=15) {
             RCLCPP_INFO(this->get_logger(), "click blue");
             geometry_msgs::msg::Point32 msg;
             msg.x=(float)blue.x;
