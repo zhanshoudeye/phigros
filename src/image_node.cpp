@@ -21,7 +21,7 @@ image_node::image_node(): Node("image_node") {
 }
 
 // 检测蓝色音符并获取其底部坐标保存起来
-void image_node::find_blue(cv::Mat &mask, cv::Mat &image, std::vector<cv::Point> &object_points) {
+void image_node::find_blue(cv::Mat &mask, cv::Mat &image, std::vector<cv::Point> &object_points,double angle) {
     std::vector<std::vector<cv::Point> > contours;
     std::vector<cv::Vec4i> hierarchy;
     //查找轮廓
@@ -32,9 +32,9 @@ void image_node::find_blue(cv::Mat &mask, cv::Mat &image, std::vector<cv::Point>
         if (area > 100) {
             //计算包围矩形和质心
             cv::Rect bounding_box = cv::boundingRect(contour);
-            cv::Moments moments = cv::moments(contour);
+
             //记录蓝色音符底部坐标
-            cv::Point object_point = cv::Point(moments.m10 / moments.m00, bounding_box.y + bounding_box.height);
+            cv::Point object_point = cv::Point(bounding_box.x+bounding_box.height*std::sin(angle), bounding_box.y + bounding_box.height*std::cos(angle));
             object_points.push_back(object_point);
             //绘制边框
             cv::rectangle(image, bounding_box, cv::Scalar(124, 234, 13), 2);
@@ -44,27 +44,33 @@ void image_node::find_blue(cv::Mat &mask, cv::Mat &image, std::vector<cv::Point>
 
 //通过霍夫变换检测直线并找到最长的直线即为判定线
 void image_node::find_white(std::vector<cv::Vec4i> &lines, cv::Mat &image, cv::Vec4i &object_line, double &A, double &B,
-                            double &C) {
+                            double &C,double &angle) {
     //霍夫变换检测线段
     cv::HoughLinesP(image, lines, 1,CV_PI / 180, 50);
-    double max_length = 0;
+    double max_length = 0,a=0,b=0,c=0,line_angle=0;
     for (auto &line: lines) {
         cv::Point pt1(line[0], line[1]), pt2(line[2], line[3]);
         double dx=pt1.x-pt2.x;
         double dy=pt1.y-pt2.y;
+
+
         double length = std::sqrt(dx*dx+dy*dy);
         //筛选最长线段
         if (length > max_length) {
             max_length = length;
             object_line = line;
-            A = pt2.y - pt1.y;
-            B = pt1.x - pt2.x;
-            C = pt2.x * pt1.y - pt2.y * pt1.x;
-
+            a = pt2.y - pt1.y;
+            b = pt1.x - pt2.x;
+            c = pt2.x * pt1.y - pt2.y * pt1.x;
+            double radian =std::atan2(dy,dx);
+            angle= radian*(180/CV_PI);
         }
 
     }
-
+    A=a;
+    B=b;
+    C=c;
+    angle=line_angle;
     //没找到时，打印
     if (lines.empty()) {
         RCLCPP_INFO(this->get_logger(), "empty lines");
@@ -82,6 +88,7 @@ void image_node::click_blue(std::vector<cv::Point> &object_points, double &A, do
             msg.y = (float) blue.y;
             msg.z = 0;
             click_pub_->publish(msg);
+
         }
     }
 }
@@ -100,7 +107,7 @@ void image_node::image_callback(const sensor_msgs::msg::Image msg) {
     cv::cvtColor(image, imageHsv, cv::COLOR_BGR2HSV);
     cv::Canny(imageGray, imageEdges, 50, 150);
     //蓝色音符颜色阈值
-    cv::Scalar lower_blue = cv::Scalar(0, 100, 10);
+    cv::Scalar lower_blue = cv::Scalar(0, 100, 150);
     cv::Scalar upper_blue = cv::Scalar(179, 255, 255);
     cv::Mat mask_blue;
     cv::inRange(imageHsv, lower_blue, upper_blue, mask_blue);
@@ -108,10 +115,13 @@ void image_node::image_callback(const sensor_msgs::msg::Image msg) {
     std::vector<cv::Point> blue;
     std::vector<cv::Vec4i> lines;
     cv::Vec4i object_line;
-    double A, B, C;
+    double A, B, C,angle;
     //检测蓝色音符和判定线
-    find_blue(mask_blue, image, blue);
-    find_white(lines, imageEdges, object_line, A, B, C);
+    find_white(lines, imageEdges, object_line, A, B, C, angle);
+    find_blue(mask_blue, image, blue, angle);
     //点击蓝色音符
     click_blue(blue, A, B, C);
+    // cv::imshow("image", image);
+    // cv::imshow("mask", mask_blue);
+    // cv::waitKey(1);
 }

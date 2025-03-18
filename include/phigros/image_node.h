@@ -16,9 +16,9 @@ public:
   image_node();
 
 private:
-  void find_blue(cv::Mat &mask, cv::Mat &image, std::vector<cv::Point> &object_points);
+  void find_blue(cv::Mat &mask, cv::Mat &image, std::vector<cv::Point> &object_points, double Cos);
 
-  void find_white(std::vector<cv::Vec4i> &lines, cv::Mat &image, cv::Vec4i &object_line, double &A, double &B, double &C);
+  void find_white(std::vector<cv::Vec4i> &lines, cv::Mat &image, cv::Vec4i &object_line, double &A, double &B, double &C, double &angle);
 
   void click_blue(std::vector<cv::Point> &object_points, double &A, double &B, double &C);
 
