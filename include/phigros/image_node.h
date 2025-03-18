@@ -18,9 +18,9 @@ public:
 private:
   void find_blue(cv::Mat &mask, cv::Mat &image, std::vector<cv::Point> &object_points);
 
-  void find_white(std::vector<cv::Vec4i> &lines, cv::Mat &image, cv::Vec4i &object_line);
+  void find_white(std::vector<cv::Vec4i> &lines, cv::Mat &image, cv::Vec4i &object_line, double &A, double &B, double &C);
 
-  void click_blue(int y, std::vector<cv::Point> &object_points);
+  void click_blue(std::vector<cv::Point> &object_points, double &A, double &B, double &C);
 
   void image_callback(sensor_msgs::msg::Image msg);
 
